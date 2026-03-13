@@ -1,0 +1,133 @@
+@page "/play/{PrototypeId}"
+@implements IAsyncDisposable
+@inject NavigationManager Navigation
+@inject PrototypeCatalogService Catalog
+@inject GameLoopService Loop
+@inject TelemetryService Telemetry
+
+<PageTitle>Playground</PageTitle>
+
+@if (_prototype is null)
+{
+    <div class="section-block">
+        <h1>原型不存在</h1>
+        <p>当前路由没有匹配到可用原型。</p>
+        <a class="btn btn-primary" href="/">返回大厅</a>
+    </div>
+}
+else
+{
+    <div class="playground-shell">
+        <section class="play-area">
+            <div class="section-heading">
+                <p class="eyebrow">Prototype</p>
+                <h1>@_prototype.Title</h1>
+                <p>@_prototype.Description</p>
+            </div>
+
+            <GameCanvas Prototype="_prototype" />
+
+            <div class="control-row">
+                <div class="control-tip">
+                    <strong>操作</strong>
+                    <span>@(_snapshot.IsBattleOver ? "战斗已结束，可以提交反馈或直接保存结果。" : _prototype.ControlsHint)</span>
+                </div>
+                <div class="control-actions">
+                    <button class="btn btn-outline-secondary" @onclick="MarkCheckpointAsync">记录检查点</button>
+                    <button class="btn btn-primary" @onclick="FinishAsync">结束并保存结果</button>
+                </div>
+            </div>
+        </section>
+
+        <aside class="sidebar-panel">
+            <HudPanel Prototype="_prototype" Snapshot="_snapshot" SessionStatus="_sessionStatus" />
+            <TestSurvey OnSubmit="SubmitSurveyAsync" />
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string PrototypeId { get; set; } = string.Empty;
+
+    private PrototypeDefinition? _prototype;
+    private GameSnapshot _snapshot = new();
+    private string _sessionStatus = "Running";
+    private bool _sessionActive;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Loop.SnapshotChanged -= HandleSnapshotChanged;
+        Loop.SnapshotChanged += HandleSnapshotChanged;
+
+        _prototype = Catalog.GetById(PrototypeId);
+        _snapshot = new();
+        _sessionStatus = "Running";
+        _sessionActive = false;
+
+        await Loop.StopAsync();
+
+        if (_prototype is not null)
+        {
+            await Telemetry.StartSessionAsync(_prototype);
+            await Loop.StartAsync(_prototype);
+            _sessionActive = true;
+        }
+    }
+
+    private void HandleSnapshotChanged(GameSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        _sessionStatus = snapshot.IsBattleOver ? snapshot.Outcome : "Running";
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task MarkCheckpointAsync()
+    {
+        await Telemetry.TrackEventAsync("checkpoint", new Dictionary<string, object?>
+        {
+            ["elapsedSeconds"] = Math.Round(_snapshot.ElapsedSeconds, 2),
+            ["x"] = Math.Round(_snapshot.PlayerX, 1),
+            ["y"] = Math.Round(_snapshot.PlayerY, 1),
+            ["health"] = _snapshot.PlayerHealth,
+            ["enemiesRemaining"] = _snapshot.EnemiesRemaining
+        });
+    }
+
+    private async Task FinishAsync()
+    {
+        var status = _snapshot.IsBattleOver ? _snapshot.Outcome : "Manually Stopped";
+        await CompleteSessionAsync(status);
+    }
+
+    private async Task SubmitSurveyAsync(TestSurveyResponse survey)
+    {
+        await Telemetry.AttachSurveyAsync(survey);
+
+        if (_sessionActive)
+        {
+            var status = _snapshot.IsBattleOver ? _snapshot.Outcome : "Submitted Early";
+            await CompleteSessionAsync(status);
+        }
+    }
+
+    private async Task CompleteSessionAsync(string status)
+    {
+        if (!_sessionActive || _prototype is null)
+        {
+            return;
+        }
+
+        _sessionActive = false;
+        _sessionStatus = status;
+        await Loop.StopAsync();
+        var result = await Telemetry.CompleteSessionAsync(status, _snapshot);
+        Navigation.NavigateTo($"/results?session={result.SessionId}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Loop.SnapshotChanged -= HandleSnapshotChanged;
+        await Loop.StopAsync();
+    }
+}

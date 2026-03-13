@@ -1,0 +1,85 @@
+@page "/results"
+@inject TelemetryService Telemetry
+
+<PageTitle>Results</PageTitle>
+
+<div class="section-block">
+    <div class="section-heading">
+        <p class="eyebrow">Telemetry</p>
+        <h1>测试结果</h1>
+        <p>当前版本把结果写入浏览器本地存储，适合原型阶段快速验证。</p>
+    </div>
+</div>
+
+@if (_results.Count == 0)
+{
+    <div class="empty-state">
+        <h2>还没有测试记录</h2>
+        <p>先进入一个原型试玩，再回来查看结果。</p>
+    </div>
+}
+else
+{
+    <div class="results-list">
+        @foreach (var result in _results)
+        {
+            <article class="result-card">
+                <header>
+                    <div>
+                        <p class="eyebrow">@(result.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</p>
+                        <h2>@result.PrototypeTitle</h2>
+                    </div>
+                    <span class="status-pill">@result.Status</span>
+                </header>
+
+                <div class="result-metrics">
+                    <div>
+                        <span class="metric-label">时长</span>
+                        <strong>@Math.Round(result.DurationSeconds, 1) 秒</strong>
+                    </div>
+                    <div>
+                        <span class="metric-label">事件数</span>
+                        <strong>@result.Events.Count</strong>
+                    </div>
+                    <div>
+                        <span class="metric-label">生命结算</span>
+                        <strong>@result.FinalSnapshot.PlayerHealth / @result.FinalSnapshot.MaxPlayerHealth</strong>
+                    </div>
+                    <div>
+                        <span class="metric-label">击杀 / 剩余</span>
+                        <strong>@result.FinalSnapshot.Kills / @result.FinalSnapshot.EnemiesRemaining</strong>
+                    </div>
+                    <div>
+                        <span class="metric-label">攻击命中</span>
+                        <strong>@result.FinalSnapshot.TargetHits / @result.FinalSnapshot.Attacks</strong>
+                    </div>
+                    <div>
+                        <span class="metric-label">闪避 / 输入</span>
+                        <strong>@result.FinalSnapshot.Dodges / @result.FinalSnapshot.TotalInputs</strong>
+                    </div>
+                </div>
+
+                @if (result.Survey is not null)
+                {
+                    <div class="survey-summary">
+                        <p><strong>难度：</strong>@result.Survey.Difficulty</p>
+                        <p><strong>乐趣：</strong>@result.Survey.Fun</p>
+                        @if (!string.IsNullOrWhiteSpace(result.Survey.Notes))
+                        {
+                            <p><strong>备注：</strong>@result.Survey.Notes</p>
+                        }
+                    </div>
+                }
+            </article>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<PrototypeSessionResult> _results = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _results = await Telemetry.GetResultsAsync();
+    }
+}

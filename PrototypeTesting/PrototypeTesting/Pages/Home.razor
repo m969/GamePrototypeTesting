@@ -1,0 +1,92 @@
+@page "/"
+@inject PrototypeCatalogService Catalog
+@inject TelemetryService Telemetry
+
+<PageTitle>Prototype Lab</PageTitle>
+
+<div class="hero-panel">
+    <div>
+        <p class="eyebrow">Prototype Testing</p>
+        <h1>游戏原型测试大厅</h1>
+        <p class="hero-copy">
+            第一版结构聚焦在三件事：快速切换玩法原型、记录测试行为、把试玩结果沉淀到本地。
+        </p>
+    </div>
+    <div class="hero-actions">
+        <a class="btn btn-primary" href="play/combat-arena">进入默认原型</a>
+        <a class="btn btn-outline-secondary" href="results">查看结果</a>
+    </div>
+</div>
+
+<section class="section-block">
+    <div class="section-heading">
+        <h2>可试玩原型</h2>
+        <p>先用同一套测试外壳承载不同玩法实验。</p>
+    </div>
+
+    <PrototypeSelector Prototypes="_prototypes" />
+</section>
+
+<section class="section-block">
+    <div class="section-heading">
+        <h2>测试闭环</h2>
+        <p>从试玩到结果归档，当前版本都在浏览器本地完成。</p>
+    </div>
+
+    <div class="info-grid">
+        <article class="info-card">
+            <h3>1. 进入原型</h3>
+            <p>选择一个玩法原型，初始化游戏循环和输入采集。</p>
+        </article>
+        <article class="info-card">
+            <h3>2. 采集数据</h3>
+            <p>记录移动、攻击、闪避、点击和完成状态，先写入 localStorage。</p>
+        </article>
+        <article class="info-card">
+            <h3>3. 试玩反馈</h3>
+            <p>结束后填写难度、乐趣和备注，沉淀为可对比的测试结果。</p>
+        </article>
+    </div>
+</section>
+
+@if (_latestResult is not null)
+{
+    <section class="section-block">
+        <div class="section-heading">
+            <h2>最近一次测试</h2>
+            <p>用于确认数据链路是否正常。</p>
+        </div>
+
+        <div class="latest-result">
+            <div>
+                <span class="metric-label">原型</span>
+                <strong>@_latestResult.PrototypeTitle</strong>
+            </div>
+            <div>
+                <span class="metric-label">时长</span>
+                <strong>@Math.Round(_latestResult.DurationSeconds, 1) 秒</strong>
+            </div>
+            <div>
+                <span class="metric-label">事件数</span>
+                <strong>@_latestResult.Events.Count</strong>
+            </div>
+            <div>
+                <span class="metric-label">状态</span>
+                <strong>@_latestResult.Status</strong>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<PrototypeDefinition> _prototypes = [];
+    private PrototypeSessionResult? _latestResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _prototypes = Catalog.GetAll();
+
+        var results = await Telemetry.GetResultsAsync();
+        _latestResult = results.FirstOrDefault();
+    }
+}

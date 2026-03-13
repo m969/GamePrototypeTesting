@@ -1,0 +1,55 @@
+<section class="hud-panel">
+    <header class="hud-header">
+        <div>
+            <p class="eyebrow">@Prototype.Category</p>
+            <h2>@Prototype.Title</h2>
+        </div>
+        <span class="status-pill">@(Snapshot.IsBattleOver ? Snapshot.Outcome : SessionStatus)</span>
+    </header>
+
+    <div class="metric-grid">
+        <div>
+            <span class="metric-label">生命</span>
+            <strong>@Snapshot.PlayerHealth / @Snapshot.MaxPlayerHealth</strong>
+        </div>
+        <div>
+            <span class="metric-label">剩余敌人</span>
+            <strong>@Snapshot.EnemiesRemaining</strong>
+        </div>
+        <div>
+            <span class="metric-label">击杀</span>
+            <strong>@Snapshot.Kills</strong>
+        </div>
+        <div>
+            <span class="metric-label">时间</span>
+            <strong>@Math.Round(Snapshot.ElapsedSeconds, 1) 秒</strong>
+        </div>
+        <div>
+            <span class="metric-label">攻击</span>
+            <strong>@Snapshot.Attacks</strong>
+        </div>
+        <div>
+            <span class="metric-label">闪避</span>
+            <strong>@Snapshot.Dodges</strong>
+        </div>
+    </div>
+
+    <div class="snapshot-panel">
+        <p><strong>位置：</strong>@Math.Round(Snapshot.PlayerX, 0), @Math.Round(Snapshot.PlayerY, 0)</p>
+        <p><strong>命中次数：</strong>@Snapshot.TargetHits</p>
+        <p><strong>已清波次：</strong>@Snapshot.WavesCleared</p>
+        <p><strong>总输入：</strong>@Snapshot.TotalInputs</p>
+        <p><strong>原型目标：</strong>@Prototype.TestGoal</p>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public required PrototypeDefinition Prototype { get; set; }
+
+    [Parameter]
+    public GameSnapshot Snapshot { get; set; } = GameSnapshot.Empty;
+
+    [Parameter]
+    public string SessionStatus { get; set; } = "Running";
+}

@@ -1,0 +1,26 @@
+@if (Prototypes.Count == 0)
+{
+    <p>没有可用原型。</p>
+}
+else
+{
+    <div class="prototype-grid">
+        @foreach (var prototype in Prototypes)
+        {
+            <article class="prototype-card">
+                <p class="eyebrow">@prototype.Category</p>
+                <h3>@prototype.Title</h3>
+                <p>@prototype.Description</p>
+                <div class="prototype-footer">
+                    <span>@prototype.ControlsHint</span>
+                    <a class="btn btn-sm btn-primary" href="@($"/play/{prototype.Id}")">开始测试</a>
+                </div>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<PrototypeDefinition> Prototypes { get; set; } = [];
+}

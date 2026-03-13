@@ -1,0 +1,46 @@
+<EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+    <section class="survey-card">
+        <header>
+            <p class="eyebrow">Post Test Survey</p>
+            <h2>试玩反馈</h2>
+        </header>
+
+        <div class="survey-field">
+            <label for="difficulty">难度感受</label>
+            <InputSelect id="difficulty" class="form-select" @bind-Value="_model.Difficulty">
+                <option value="偏简单">偏简单</option>
+                <option value="合适">合适</option>
+                <option value="偏难">偏难</option>
+            </InputSelect>
+        </div>
+
+        <div class="survey-field">
+            <label for="fun">乐趣感受</label>
+            <InputSelect id="fun" class="form-select" @bind-Value="_model.Fun">
+                <option value="一般">一般</option>
+                <option value="不错">不错</option>
+                <option value="想继续玩">想继续玩</option>
+            </InputSelect>
+        </div>
+
+        <div class="survey-field">
+            <label for="notes">备注</label>
+            <InputTextArea id="notes" class="form-control" rows="4" @bind-Value="_model.Notes" />
+        </div>
+
+        <button class="btn btn-dark" type="submit">提交反馈</button>
+    </section>
+</EditForm>
+
+@code {
+    private TestSurveyResponse _model = new();
+
+    [Parameter]
+    public EventCallback<TestSurveyResponse> OnSubmit { get; set; }
+
+    private async Task HandleSubmitAsync()
+    {
+        await OnSubmit.InvokeAsync(_model);
+        _model = new TestSurveyResponse();
+    }
+}

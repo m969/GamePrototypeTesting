@@ -1,0 +1,96 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject GameLoopService Loop
+@inject TelemetryService Telemetry
+
+<canvas @ref="_canvas" class="game-canvas" tabindex="0"></canvas>
+
+@code {
+    [Parameter, EditorRequired]
+    public required PrototypeDefinition Prototype { get; set; }
+
+    private ElementReference _canvas;
+    private DotNetObjectReference<GameCanvas>? _dotNetRef;
+    private IJSObjectReference? _module;
+    private string? _currentPrototypeId;
+    private bool _initialized;
+
+    protected override void OnInitialized()
+    {
+        Loop.SnapshotChanged += HandleSnapshotChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_module is null)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvasInterop.js");
+            _dotNetRef = DotNetObjectReference.Create(this);
+        }
+
+        if (_currentPrototypeId != Prototype.Id)
+        {
+            _currentPrototypeId = Prototype.Id;
+            _initialized = true;
+            await _module.InvokeVoidAsync("initializePrototypeCanvas", _canvas, _dotNetRef, new
+            {
+                prototypeId = Prototype.Id,
+                width = 960,
+                height = 540
+            });
+
+            await RenderSnapshotAsync(Loop.CurrentSnapshot);
+        }
+    }
+
+    private void HandleSnapshotChanged(GameSnapshot snapshot)
+    {
+        _ = InvokeAsync(() => RenderSnapshotAsync(snapshot));
+    }
+
+    private async Task RenderSnapshotAsync(GameSnapshot snapshot)
+    {
+        if (!_initialized || _module is null)
+        {
+            return;
+        }
+
+        await _module.InvokeVoidAsync("renderPrototypeCanvas", _canvas, snapshot);
+    }
+
+    [JSInvokable]
+    public Task HandleInputDown(string code)
+    {
+        Loop.SetInputState(code, true);
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task HandleInputUp(string code)
+    {
+        Loop.SetInputState(code, false);
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task HandleCanvasFocused()
+    {
+        return Telemetry.TrackEventAsync("focus", new Dictionary<string, object?>
+        {
+            ["prototypeId"] = Prototype.Id
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Loop.SnapshotChanged -= HandleSnapshotChanged;
+
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("disposePrototypeCanvas", _canvas);
+            await _module.DisposeAsync();
+        }
+
+        _dotNetRef?.Dispose();
+    }
+}
