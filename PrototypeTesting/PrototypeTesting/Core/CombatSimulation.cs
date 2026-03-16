@@ -28,10 +28,16 @@ public class CombatSimulation
         const double height = 540;
         var config = PrototypeConfig.Create(prototype.Id, width, height);
         var world = new EcsWorld();
+        world.AddComponent(new ArenaComponent());
+        world.AddComponent(new TimeComponent());
+        world.AddComponent(new BattleStatsComponent());
+        world.AddComponent(new BattleStateComponent());
+        world.AddComponent(new CombatCommandBufferComponent());
+        world.AddComponent(new CombatEventBufferComponent());
         AppGlobal.World = world;
-        world.Arena.Width = width;
-        world.Arena.Height = height;
-        world.Arena.DodgeBoost = config.DodgeBoost;
+        world.GetComponent<ArenaComponent>().Width = width;
+        world.GetComponent<ArenaComponent>().Height = height;
+        world.GetComponent<ArenaComponent>().DodgeBoost = config.DodgeBoost;
 
         var controlledActorId = world.CreateEntityId();
         var controlledActor = new Actor(controlledActorId)
@@ -104,15 +110,15 @@ public class CombatSimulation
 
     public void Update(double deltaSeconds, InputState inputState)
     {
-        if (State.World.BattleState.IsBattleOver)
+        if (State.World.GetComponent<BattleStateComponent>().IsBattleOver)
         {
             return;
         }
 
         var world = State.World;
         var controlledActor = world.GetActor(State.ControlledActorId);
-        world.Time.DeltaSeconds = deltaSeconds;
-        world.Time.ElapsedSeconds += deltaSeconds;
+        world.GetComponent<TimeComponent>().DeltaSeconds = deltaSeconds;
+        world.GetComponent<TimeComponent>().ElapsedSeconds += deltaSeconds;
 
         _commandResolutionSystem.Update(TrackEvent);
         _actorMovementSystem.Update(controlledActor, inputState);
@@ -184,3 +190,4 @@ public class PrototypeConfig
 
     private readonly record struct PrototypeConfigTemplate(int OpponentCount, double OpponentSpeed, int OpponentHealth, int ControlledHealth, double DodgeBoost);
 }
+

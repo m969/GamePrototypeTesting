@@ -68,3 +68,10 @@ public abstract class EcsComponent
 
     public long EntityId { get; }
 }
+
+public abstract class EcsNode : EcsEntity
+{
+    protected EcsNode(long id) : base(id)
+    {
+    }
+}

@@ -12,8 +12,8 @@ public class InputActionSystem
         }
 
         var world = state.World;
-        var elapsedSeconds = world.Time.ElapsedSeconds;
-        world.BattleStats.TotalInputs += 1;
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
+        world.GetComponent<BattleStatsComponent>().TotalInputs += 1;
         trackEvent("input", new Dictionary<string, object?>
         {
             ["code"] = edge.Code,
@@ -22,11 +22,11 @@ public class InputActionSystem
 
         if (edge.Code == "Space")
         {
-            world.CommandBuffer.Commands.Add(new AttackCommand(state.ControlledActorId));
+            world.GetComponent<CombatCommandBufferComponent>().Commands.Add(new AttackCommand(state.ControlledActorId));
         }
         else if (edge.Code is "ShiftLeft" or "ShiftRight")
         {
-            world.CommandBuffer.Commands.Add(new DodgeCommand(state.ControlledActorId));
+            world.GetComponent<CombatCommandBufferComponent>().Commands.Add(new DodgeCommand(state.ControlledActorId));
         }
     }
 }
@@ -37,12 +37,12 @@ public class CommandResolutionSystem
     {
         var world = AppGlobal.World;
 
-        if (world.CommandBuffer.Commands.Count == 0)
+        if (world.GetComponent<CombatCommandBufferComponent>().Commands.Count == 0)
         {
             return;
         }
 
-        foreach (var command in world.CommandBuffer.Commands)
+        foreach (var command in world.GetComponent<CombatCommandBufferComponent>().Commands)
         {
             switch (command)
             {
@@ -55,13 +55,13 @@ public class CommandResolutionSystem
             }
         }
 
-        world.CommandBuffer.Commands.Clear();
+        world.GetComponent<CombatCommandBufferComponent>().Commands.Clear();
     }
 
     private static void ResolveAttack(EcsWorld world, long sourceEntityId, Action<string, Dictionary<string, object?>> trackEvent)
     {
-        var elapsedSeconds = world.Time.ElapsedSeconds;
-        var battleStats = world.BattleStats;
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
+        var battleStats = world.GetComponent<BattleStatsComponent>();
         var attacker = world.GetActor(sourceEntityId);
         var attackerTransform = attacker.GetComponent<TransformComponent>();
         var attackerCombat = attacker.GetComponent<CombatStateComponent>();
@@ -98,7 +98,7 @@ public class CommandResolutionSystem
 
             hitCount += 1;
             battleStats.TargetHits += 1;
-            world.EventBuffer.Events.Add(new DamageEvent(opponent.Id, 1, elapsedSeconds + 0.12, 0, 0, "attack"));
+            world.GetComponent<CombatEventBufferComponent>().Events.Add(new DamageEvent(opponent.Id, 1, elapsedSeconds + 0.12, 0, 0, "attack"));
         }
 
         trackEvent("attack", new Dictionary<string, object?>
@@ -110,8 +110,8 @@ public class CommandResolutionSystem
 
     private static void ResolveDodge(EcsWorld world, long sourceEntityId, Action<string, Dictionary<string, object?>> trackEvent)
     {
-        var elapsedSeconds = world.Time.ElapsedSeconds;
-        var battleStats = world.BattleStats;
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
+        var battleStats = world.GetComponent<BattleStatsComponent>();
         var actor = world.GetActor(sourceEntityId);
         var combat = actor.GetComponent<CombatStateComponent>();
 
@@ -148,7 +148,7 @@ public class ActorMovementSystem
         var actorTransform = actor.GetComponent<TransformComponent>();
         var actorMovement = actor.GetComponent<MovementStatsComponent>();
         var actorCombat = actor.GetComponent<CombatStateComponent>();
-        var elapsedSeconds = world.Time.ElapsedSeconds;
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
 
         if (directionX != 0 || directionY != 0)
         {
@@ -157,16 +157,16 @@ public class ActorMovementSystem
             actorTransform.FacingY = normalized.Y;
 
             var speedMultiplier = actorCombat.IsDodging(elapsedSeconds)
-                ? world.Arena.DodgeBoost
+                ? world.GetComponent<ArenaComponent>().DodgeBoost
                 : 1.0;
 
-            var velocity = actorMovement.Speed * speedMultiplier * world.Time.DeltaSeconds;
+            var velocity = actorMovement.Speed * speedMultiplier * world.GetComponent<TimeComponent>().DeltaSeconds;
             actorTransform.X += normalized.X * velocity;
             actorTransform.Y += normalized.Y * velocity;
         }
 
-        actorTransform.X = SimulationMath.Clamp(actorTransform.X, 18, world.Arena.Width - actorTransform.Size - 18);
-        actorTransform.Y = SimulationMath.Clamp(actorTransform.Y, 18, world.Arena.Height - actorTransform.Size - 18);
+        actorTransform.X = SimulationMath.Clamp(actorTransform.X, 18, world.GetComponent<ArenaComponent>().Width - actorTransform.Size - 18);
+        actorTransform.Y = SimulationMath.Clamp(actorTransform.Y, 18, world.GetComponent<ArenaComponent>().Height - actorTransform.Size - 18);
     }
 }
 
@@ -188,8 +188,8 @@ public class OpponentChaseSystem
             var opponentTransform = opponent.GetComponent<TransformComponent>();
             var opponentMovement = opponent.GetComponent<MovementStatsComponent>();
             var direction = SimulationMath.Normalize(controlledCenter.X - opponentTransform.X, controlledCenter.Y - opponentTransform.Y);
-            opponentTransform.X += direction.X * opponentMovement.Speed * world.Time.DeltaSeconds;
-            opponentTransform.Y += direction.Y * opponentMovement.Speed * world.Time.DeltaSeconds;
+            opponentTransform.X += direction.X * opponentMovement.Speed * world.GetComponent<TimeComponent>().DeltaSeconds;
+            opponentTransform.Y += direction.Y * opponentMovement.Speed * world.GetComponent<TimeComponent>().DeltaSeconds;
         }
     }
 }
@@ -199,7 +199,7 @@ public class CollisionDetectionSystem
     public void Update(Actor controlledActor)
     {
         var world = AppGlobal.World;
-        var elapsedSeconds = world.Time.ElapsedSeconds;
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
         var controlledTransform = controlledActor.GetComponent<TransformComponent>();
         var controlledCombat = controlledActor.GetComponent<CombatStateComponent>();
         var controlledCenter = controlledTransform.Center;
@@ -222,7 +222,7 @@ public class CollisionDetectionSystem
                 elapsedSeconds >= opponentCombat.ContactCooldownUntil &&
                 !controlledCombat.IsInvulnerable(elapsedSeconds))
             {
-                world.EventBuffer.Events.Add(new DamageEvent(
+                world.GetComponent<CombatEventBufferComponent>().Events.Add(new DamageEvent(
                     controlledActor.Id,
                     1,
                     elapsedSeconds + 0.16,
@@ -242,13 +242,13 @@ public class DamageApplySystem
     {
         var world = AppGlobal.World;
 
-        if (world.EventBuffer.Events.Count == 0)
+        if (world.GetComponent<CombatEventBufferComponent>().Events.Count == 0)
         {
             return;
         }
 
-        var pendingEvents = world.EventBuffer.Events.ToList();
-        world.EventBuffer.Events.Clear();
+        var pendingEvents = world.GetComponent<CombatEventBufferComponent>().Events.ToList();
+        world.GetComponent<CombatEventBufferComponent>().Events.Clear();
 
         foreach (var combatEvent in pendingEvents)
         {
@@ -258,7 +258,7 @@ public class DamageApplySystem
                     ApplyDamage(world, damage, trackEvent);
                     break;
                 case ActorKilledEvent:
-                    world.BattleStats.Kills += 1;
+                    world.GetComponent<BattleStatsComponent>().Kills += 1;
                     break;
             }
         }
@@ -309,14 +309,14 @@ public class DamageApplySystem
 
         if (targetActor.Role == ActorRole.Opponent)
         {
-            world.EventBuffer.Events.Add(new ActorKilledEvent(targetActor.Id));
+            world.GetComponent<CombatEventBufferComponent>().Events.Add(new ActorKilledEvent(targetActor.Id));
             return;
         }
 
         if (targetActor.Role == ActorRole.Controlled)
         {
-            world.BattleState.IsBattleOver = true;
-            world.BattleState.Outcome = "Defeat";
+            world.GetComponent<BattleStateComponent>().IsBattleOver = true;
+            world.GetComponent<BattleStateComponent>().Outcome = "Defeat";
         }
     }
 }
@@ -326,9 +326,9 @@ public class BattleOutcomeSystem
     public void Update(Action<string, Dictionary<string, object?>> trackEvent)
     {
         var world = AppGlobal.World;
-        var battleState = world.BattleState;
-        var battleStats = world.BattleStats;
-        var elapsedSeconds = world.Time.ElapsedSeconds;
+        var battleState = world.GetComponent<BattleStateComponent>();
+        var battleStats = world.GetComponent<BattleStatsComponent>();
+        var elapsedSeconds = world.GetComponent<TimeComponent>().ElapsedSeconds;
 
         if (battleState.IsBattleOver)
         {
@@ -385,3 +385,4 @@ public static class SimulationMath
         return Math.Sqrt((dx * dx) + (dy * dy));
     }
 }
+

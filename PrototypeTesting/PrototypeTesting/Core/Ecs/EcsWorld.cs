@@ -2,24 +2,17 @@ namespace PrototypeTesting.Core.Ecs;
 
 public static class AppGlobal
 {
-    public static EcsWorld World { get; set; }
+    public static EcsWorld World { get; set; } = null!;
 }
 
-public sealed class EcsWorld
+public sealed class EcsWorld : EcsNode
 {
     private long _nextEntityId = 1;
 
-    public ArenaComponent Arena { get; } = new();
+    public EcsWorld() : base(0)
+    {
 
-    public TimeComponent Time { get; } = new();
-
-    public BattleStatsComponent BattleStats { get; } = new();
-
-    public BattleStateComponent BattleState { get; } = new();
-
-    public CombatCommandBufferComponent CommandBuffer { get; } = new();
-
-    public CombatEventBufferComponent EventBuffer { get; } = new();
+    }
 
     public Dictionary<long, Actor> Actors { get; } = [];
 
@@ -28,6 +21,7 @@ public sealed class EcsWorld
     public void AddActor(Actor actor)
     {
         Actors[actor.Id] = actor;
+        AddChild(actor);
     }
 
     public IEnumerable<Actor> QueryOpponentActors() => QueryActors(actor => actor.Role == ActorRole.Opponent);

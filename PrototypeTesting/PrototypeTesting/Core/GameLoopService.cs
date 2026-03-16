@@ -1,3 +1,4 @@
+using PrototypeTesting.Core.Ecs;
 using System.Diagnostics;
 using PrototypeTesting.Models;
 
@@ -55,7 +56,7 @@ public sealed class GameLoopService(TelemetryService telemetry)
 
     public void SetInputState(string code, bool isPressed)
     {
-        if (_simulation is null || _simulation.State.World.BattleState.IsBattleOver)
+        if (_simulation is null || _simulation.State.World.GetComponent<BattleStateComponent>().IsBattleOver)
         {
             return;
         }
@@ -91,7 +92,7 @@ public sealed class GameLoopService(TelemetryService telemetry)
             simulation.Update(deltaSeconds, _inputState);
             PublishSnapshot();
 
-            if (simulation.State.World.BattleState.IsBattleOver)
+            if (simulation.State.World.GetComponent<BattleStateComponent>().IsBattleOver)
             {
                 break;
             }
@@ -109,3 +110,4 @@ public sealed class GameLoopService(TelemetryService telemetry)
         SnapshotChanged?.Invoke(CurrentSnapshot);
     }
 }
+
