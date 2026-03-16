@@ -3,7 +3,7 @@ using PrototypeTesting.Models;
 
 namespace PrototypeTesting.Core;
 
-internal sealed class CombatSimulation
+public class CombatSimulation
 {
     private readonly TelemetryService _telemetry;
     private readonly InputActionSystem _inputActionSystem = new();
@@ -28,61 +28,64 @@ internal sealed class CombatSimulation
         const double height = 540;
         var config = PrototypeConfig.Create(prototype.Id, width, height);
         var world = new EcsWorld();
+        AppGlobal.World = world;
         world.Arena.Width = width;
         world.Arena.Height = height;
         world.Arena.DodgeBoost = config.DodgeBoost;
 
         var controlledActorId = world.CreateEntityId();
-        world.AddActor(new Actor(controlledActorId)
+        var controlledActor = new Actor(controlledActorId)
         {
             Role = ActorRole.Controlled
-        });
-        world.AddComponent<TransformComponent>(controlledActorId, component =>
+        };
+        controlledActor.AddComponent(new TransformComponent(controlledActorId)
         {
-            component.X = width * 0.18;
-            component.Y = height * 0.52;
-            component.Size = 24;
-            component.FacingX = 1;
-            component.FacingY = 0;
+            X = width * 0.18,
+            Y = height * 0.52,
+            Size = 24,
+            FacingX = 1,
+            FacingY = 0
         });
-        world.AddComponent<MovementStatsComponent>(controlledActorId, component =>
+        controlledActor.AddComponent(new MovementStatsComponent(controlledActorId)
         {
-            component.Speed = 210;
+            Speed = 210
         });
-        world.AddComponent<HealthComponent>(controlledActorId, component =>
+        controlledActor.AddComponent(new HealthComponent(controlledActorId)
         {
-            component.Health = config.ControlledHealth;
-            component.MaxHealth = config.ControlledHealth;
+            Health = config.ControlledHealth,
+            MaxHealth = config.ControlledHealth
         });
-        world.AddComponent<CombatStateComponent>(controlledActorId);
+        controlledActor.AddComponent(new CombatStateComponent(controlledActorId));
+        world.AddActor(controlledActor);
 
         foreach (var (point, index) in config.SpawnPoints.Select((point, index) => (point, index)))
         {
             var actorId = world.CreateEntityId();
-            world.AddActor(new Actor(actorId)
+            var actor = new Actor(actorId)
             {
                 Role = ActorRole.Opponent
-            });
-            world.AddComponent<TransformComponent>(actorId, component =>
+            };
+            actor.AddComponent(new TransformComponent(actorId)
             {
-                component.X = point.X;
-                component.Y = point.Y;
-                component.Size = 0;
+                X = point.X,
+                Y = point.Y,
+                Size = 0
             });
-            world.AddComponent<MovementStatsComponent>(actorId, component =>
+            actor.AddComponent(new MovementStatsComponent(actorId)
             {
-                component.Speed = config.OpponentSpeed + (index * 1.5);
+                Speed = config.OpponentSpeed + (index * 1.5)
             });
-            world.AddComponent<HealthComponent>(actorId, component =>
+            actor.AddComponent(new HealthComponent(actorId)
             {
-                component.Health = config.OpponentHealth;
-                component.MaxHealth = config.OpponentHealth;
+                Health = config.OpponentHealth,
+                MaxHealth = config.OpponentHealth
             });
-            world.AddComponent<CombatStateComponent>(actorId);
-            world.AddComponent<CollisionComponent>(actorId, component =>
+            actor.AddComponent(new CombatStateComponent(actorId));
+            actor.AddComponent(new CollisionComponent(actorId)
             {
-                component.Radius = 18 + ((index % 2) * 3);
+                Radius = 18 + ((index % 2) * 3)
             });
+            world.AddActor(actor);
         }
 
         var state = new CombatSimulationState
@@ -107,15 +110,16 @@ internal sealed class CombatSimulation
         }
 
         var world = State.World;
+        var controlledActor = world.GetActor(State.ControlledActorId);
         world.Time.DeltaSeconds = deltaSeconds;
         world.Time.ElapsedSeconds += deltaSeconds;
 
-        _commandResolutionSystem.Update(State, TrackEvent);
-        _actorMovementSystem.Update(State, inputState);
-        _opponentChaseSystem.Update(State);
-        _collisionDetectionSystem.Update(State);
-        _damageApplySystem.Update(State, TrackEvent);
-        _battleOutcomeSystem.Update(State, TrackEvent);
+        _commandResolutionSystem.Update(TrackEvent);
+        _actorMovementSystem.Update(controlledActor, inputState);
+        _opponentChaseSystem.Update(controlledActor);
+        _collisionDetectionSystem.Update(controlledActor);
+        _damageApplySystem.Update(TrackEvent);
+        _battleOutcomeSystem.Update(TrackEvent);
     }
 
     private void TrackEvent(string eventType, Dictionary<string, object?> payload)
@@ -124,14 +128,14 @@ internal sealed class CombatSimulation
     }
 }
 
-internal sealed class CombatSimulationState
+public class CombatSimulationState
 {
     public required EcsWorld World { get; init; }
 
     public required long ControlledActorId { get; init; }
 }
 
-internal sealed class PrototypeConfig
+public class PrototypeConfig
 {
     public required int OpponentCount { get; init; }
 

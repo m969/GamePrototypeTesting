@@ -1,6 +1,6 @@
 namespace PrototypeTesting.Core.Ecs;
 
-internal sealed class TransformComponent(long entityId) : EcsComponent(entityId)
+public class TransformComponent(long entityId) : EcsComponent(entityId)
 {
     public double X { get; set; }
 
@@ -15,23 +15,23 @@ internal sealed class TransformComponent(long entityId) : EcsComponent(entityId)
     public SimulationVector Center => new(X + (Size / 2), Y + (Size / 2));
 }
 
-internal sealed class Actor(long id) : EcsEntity(id)
+public class Actor(long id) : EcsEntity(id)
 {
     public ActorRole Role { get; set; }
 }
 
-internal enum ActorRole
+public enum ActorRole
 {
     Controlled,
     Opponent
 }
 
-internal sealed class MovementStatsComponent(long entityId) : EcsComponent(entityId)
+public class MovementStatsComponent(long entityId) : EcsComponent(entityId)
 {
     public double Speed { get; set; }
 }
 
-internal sealed class HealthComponent(long entityId) : EcsComponent(entityId)
+public class HealthComponent(long entityId) : EcsComponent(entityId)
 {
     public int Health { get; set; }
 
@@ -40,7 +40,7 @@ internal sealed class HealthComponent(long entityId) : EcsComponent(entityId)
     public bool IsAlive => Health > 0;
 }
 
-internal sealed class CombatStateComponent(long entityId) : EcsComponent(entityId)
+public class CombatStateComponent(long entityId) : EcsComponent(entityId)
 {
     public double AttackUntil { get; set; }
 
@@ -63,12 +63,12 @@ internal sealed class CombatStateComponent(long entityId) : EcsComponent(entityI
     public bool IsHitFlashing(double elapsedSeconds) => HitFlashUntil > elapsedSeconds;
 }
 
-internal sealed class CollisionComponent(long entityId) : EcsComponent(entityId)
+public class CollisionComponent(long entityId) : EcsComponent(entityId)
 {
     public double Radius { get; set; }
 }
 
-internal sealed class ArenaComponent() : EcsComponent(0)
+public class ArenaComponent() : EcsComponent(0)
 {
     public double Width { get; set; }
 
@@ -77,14 +77,14 @@ internal sealed class ArenaComponent() : EcsComponent(0)
     public double DodgeBoost { get; set; }
 }
 
-internal sealed class TimeComponent() : EcsComponent(0)
+public class TimeComponent() : EcsComponent(0)
 {
     public double DeltaSeconds { get; set; }
 
     public double ElapsedSeconds { get; set; }
 }
 
-internal sealed class BattleStatsComponent() : EcsComponent(0)
+public class BattleStatsComponent() : EcsComponent(0)
 {
     public int Attacks { get; set; }
 
@@ -99,7 +99,7 @@ internal sealed class BattleStatsComponent() : EcsComponent(0)
     public int WavesCleared { get; set; }
 }
 
-internal sealed class BattleStateComponent() : EcsComponent(0)
+public class BattleStateComponent() : EcsComponent(0)
 {
     public bool IsBattleOver { get; set; }
 
@@ -108,26 +108,26 @@ internal sealed class BattleStateComponent() : EcsComponent(0)
     public string Outcome { get; set; } = "Running";
 }
 
-internal sealed class CombatCommandBufferComponent() : EcsComponent(0)
+public class CombatCommandBufferComponent() : EcsComponent(0)
 {
     public List<CombatCommand> Commands { get; } = [];
 }
 
-internal sealed class CombatEventBufferComponent() : EcsComponent(0)
+public class CombatEventBufferComponent() : EcsComponent(0)
 {
     public List<CombatEvent> Events { get; } = [];
 }
 
-internal abstract record CombatCommand;
+public abstract record CombatCommand;
 
-internal sealed record AttackCommand(long SourceEntityId) : CombatCommand;
+public record AttackCommand(long SourceEntityId) : CombatCommand;
 
-internal sealed record DodgeCommand(long SourceEntityId) : CombatCommand;
+public record DodgeCommand(long SourceEntityId) : CombatCommand;
 
-internal abstract record CombatEvent;
+public abstract record CombatEvent;
 
-internal sealed record DamageEvent(long TargetEntityId, int Amount, double HitFlashUntil, double InvulnerableUntil, double ContactCooldownUntil, string Source) : CombatEvent;
+public record DamageEvent(long TargetEntityId, int Amount, double HitFlashUntil, double InvulnerableUntil, double ContactCooldownUntil, string Source) : CombatEvent;
 
-internal sealed record ActorKilledEvent(long EntityId) : CombatEvent;
+public record ActorKilledEvent(long EntityId) : CombatEvent;
 
-internal readonly record struct SimulationVector(double X, double Y);
+public readonly record struct SimulationVector(double X, double Y);

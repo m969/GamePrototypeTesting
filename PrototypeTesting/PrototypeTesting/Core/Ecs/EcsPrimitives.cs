@@ -1,6 +1,6 @@
 namespace PrototypeTesting.Core.Ecs;
 
-internal abstract class EcsEntity
+public abstract class EcsEntity
 {
     protected EcsEntity(long id)
     {
@@ -59,7 +59,7 @@ internal abstract class EcsEntity
     }
 }
 
-internal abstract class EcsComponent
+public abstract class EcsComponent
 {
     protected EcsComponent(long entityId)
     {

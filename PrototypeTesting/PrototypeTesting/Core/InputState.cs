@@ -1,6 +1,6 @@
 namespace PrototypeTesting.Core;
 
-internal sealed class InputState
+public class InputState
 {
     private static readonly HashSet<string> SupportedKeys =
     [
@@ -49,4 +49,4 @@ internal sealed class InputState
     }
 }
 
-internal readonly record struct InputEdge(string Code, bool IsPressed);
+public readonly record struct InputEdge(string Code, bool IsPressed);

@@ -3,7 +3,7 @@ using PrototypeTesting.Models;
 
 namespace PrototypeTesting.Core;
 
-internal sealed class SnapshotMapper
+public class SnapshotMapper
 {
     public GameSnapshot Map(CombatSimulationState state)
     {

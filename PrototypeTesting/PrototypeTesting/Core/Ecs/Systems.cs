@@ -2,7 +2,7 @@ using PrototypeTesting.Core.Ecs;
 
 namespace PrototypeTesting.Core;
 
-internal sealed class InputActionSystem
+public class InputActionSystem
 {
     public void HandleInput(CombatSimulationState state, InputEdge edge, Action<string, Dictionary<string, object?>> trackEvent)
     {
@@ -31,11 +31,12 @@ internal sealed class InputActionSystem
     }
 }
 
-internal sealed class CommandResolutionSystem
+public class CommandResolutionSystem
 {
-    public void Update(CombatSimulationState state, Action<string, Dictionary<string, object?>> trackEvent)
+    public void Update(Action<string, Dictionary<string, object?>> trackEvent)
     {
-        var world = state.World;
+        var world = AppGlobal.World;
+
         if (world.CommandBuffer.Commands.Count == 0)
         {
             return;
@@ -131,11 +132,11 @@ internal sealed class CommandResolutionSystem
     }
 }
 
-internal sealed class ActorMovementSystem
+public class ActorMovementSystem
 {
-    public void Update(CombatSimulationState state, InputState inputState)
+    public void Update(Actor actor, InputState inputState)
     {
-        var world = state.World;
+        var world = AppGlobal.World;
         var directionX = 0.0;
         var directionY = 0.0;
 
@@ -144,7 +145,6 @@ internal sealed class ActorMovementSystem
         if (inputState.IsPressed("KeyA")) directionX -= 1;
         if (inputState.IsPressed("KeyD")) directionX += 1;
 
-        var actor = world.GetActor(state.ControlledActorId);
         var actorTransform = actor.GetComponent<TransformComponent>();
         var actorMovement = actor.GetComponent<MovementStatsComponent>();
         var actorCombat = actor.GetComponent<CombatStateComponent>();
@@ -170,12 +170,11 @@ internal sealed class ActorMovementSystem
     }
 }
 
-internal sealed class OpponentChaseSystem
+public class OpponentChaseSystem
 {
-    public void Update(CombatSimulationState state)
+    public void Update(Actor controlledActor)
     {
-        var world = state.World;
-        var controlledActor = world.GetActor(state.ControlledActorId);
+        var world = AppGlobal.World;
         var controlledCenter = controlledActor.GetComponent<TransformComponent>().Center;
 
         foreach (var opponent in world.QueryOpponentActors())
@@ -195,13 +194,12 @@ internal sealed class OpponentChaseSystem
     }
 }
 
-internal sealed class CollisionDetectionSystem
+public class CollisionDetectionSystem
 {
-    public void Update(CombatSimulationState state)
+    public void Update(Actor controlledActor)
     {
-        var world = state.World;
+        var world = AppGlobal.World;
         var elapsedSeconds = world.Time.ElapsedSeconds;
-        var controlledActor = world.GetActor(state.ControlledActorId);
         var controlledTransform = controlledActor.GetComponent<TransformComponent>();
         var controlledCombat = controlledActor.GetComponent<CombatStateComponent>();
         var controlledCenter = controlledTransform.Center;
@@ -238,11 +236,12 @@ internal sealed class CollisionDetectionSystem
     }
 }
 
-internal sealed class DamageApplySystem
+public class DamageApplySystem
 {
-    public void Update(CombatSimulationState state, Action<string, Dictionary<string, object?>> trackEvent)
+    public void Update(Action<string, Dictionary<string, object?>> trackEvent)
     {
-        var world = state.World;
+        var world = AppGlobal.World;
+
         if (world.EventBuffer.Events.Count == 0)
         {
             return;
@@ -322,11 +321,11 @@ internal sealed class DamageApplySystem
     }
 }
 
-internal sealed class BattleOutcomeSystem
+public class BattleOutcomeSystem
 {
-    public void Update(CombatSimulationState state, Action<string, Dictionary<string, object?>> trackEvent)
+    public void Update(Action<string, Dictionary<string, object?>> trackEvent)
     {
-        var world = state.World;
+        var world = AppGlobal.World;
         var battleState = world.BattleState;
         var battleStats = world.BattleStats;
         var elapsedSeconds = world.Time.ElapsedSeconds;
@@ -364,7 +363,7 @@ internal sealed class BattleOutcomeSystem
     }
 }
 
-internal static class SimulationMath
+public static class SimulationMath
 {
     public static double Clamp(double value, double min, double max) => Math.Max(min, Math.Min(max, value));
 
